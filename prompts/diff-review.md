@@ -17,7 +17,7 @@ Write 2-4 sentences describing what this change does at a high level and why it 
 
 ## 2. What Changed
 
-Provide a concise plain-language description of every file changed. For new files, describe their apparent purpose and role. For modified files, describe what was altered and why. For generated or embedded files, note their provenance and whether their content was reviewed.
+Provide a concise plain-language description of every file changed. For new files, describe their apparent purpose and role. For modified files, describe what was altered and why. For deleted files, note what was removed and whether anything in the diff depends on it. For generated or embedded files, note their provenance and whether their content was reviewed.
 
 ## 3. Code Quality Assessment
 
@@ -31,13 +31,16 @@ Evaluate the diff against these dimensions. For non-code files, apply each dimen
 
 ## 4. Potential Issues
 
-List specific bugs, risks, or correctness problems found. For each issue:
+List specific bugs, risks, or correctness problems found. Present them as a Markdown table:
 
-- State the **file and approximate line** (e.g., `MyClass.java:34` or `config.yaml:12`)
-- Describe the problem clearly
-- Classify severity: **Critical** / **High** / **Medium** / **Low**
+| # | Location | Issue | Severity |
+|---|----------|-------|----------|
 
-If no issues are found, state that explicitly.
+- **Location**: file and approximate line (e.g., `MyClass.java:34`)
+- **Issue**: clear description of the problem
+- **Severity**: **Critical** / **High** / **Medium** / **Low**
+
+If no issues are found, state that explicitly instead of an empty table.
 
 ## 5. Suggestions for Improvement
 

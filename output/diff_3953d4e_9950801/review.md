@@ -1,98 +1,114 @@
-# Code Review — 3953d4e → 9950801
+# Code Review — 3953d4e^1 → 3953d4e (Java exercise files)
 
-> Prompt used: `prompts/diff-review.md` (updated)
+> Prompt used: `prompts/diff-review.md` (updated — table format in §4, deleted-file guidance in §2)
 
 ---
 
 ## 1. Summary
 
-This commit adds the tooling and output artifacts from a git-diff review session: a reusable LLM prompt template (`prompts/diff-review.md`), a captured raw diff, its corresponding review document, and a session summary. No production source code is changed. The diff is mixed-content — one prompt file, two documentation files, and one embedded generated artifact — so sections below address each file type on its own terms.
+This commit adds four standalone algorithm exercise files to `com.example.demo`, covering linked-list reversal (two independent implementations) and a multi-threaded character-printing coordination exercise. The files are coding-practice work rather than production features. Several correctness bugs and an incomplete skeleton are present and should be resolved before treating these as reference material.
 
-- `prompts/diff-review.md` — New 6-section LLM prompt template for reviewing git diffs
-- `output/diff_HEAD_1_HEAD/diff.txt` — Generated artifact: captured raw diff from commit 3953d4e (content reviewed below)
-- `output/diff_HEAD_1_HEAD/review.md` — Generated artifact: code review document for commit 3953d4e (content reviewed below)
-- `output/session-summary.md` — Documentation: high-level session summary with findings table
+- `ConcurrentCache.java` — Empty cache skeleton; `main` contains an unrelated Unicode string experiment
+- `Main_478307.java` — Iterative linked-list reversal with a minor output-ordering bug
+- `Solution_12347894.java` — Second linked-list reversal via custom generic `ListNode`; dummy-head initialisation bug and shadowed type parameter
+- `ThreadPrint.java` — Three-thread character-printing exercise; doubles the intended thread count and risks deadlock
 
-**Risk Level**: Low — No production source code, tests, or configuration is touched. All files are documentation and generated output with no effect on application behaviour.
+**Risk Level**: Low — All four files are isolated exercises with their own `main` methods and touch no shared infrastructure, production business logic, or tests.
 
 ---
 
 ## 2. What Changed
 
-- **`prompts/diff-review.md`** — A new 58-line prompt template instructing an LLM to produce a structured 6-section review from a pasted git diff. The prompt covers Summary, What Changed, Code Quality, Potential Issues, Suggestions, and Positive Observations. *Content was reviewed — see §3.*
+Four new Java source files were added to `src/main/java/com/example/demo`. No files were deleted or modified.
 
-- **`output/diff_HEAD_1_HEAD/diff.txt`** — The verbatim output of `git diff HEAD~1 HEAD` from the prior session, capturing the 4 Java algorithm files added in commit 3953d4e. This file embeds an entire diff as its content, resulting in double-`+` prefix lines throughout (`++package com.example.demo;`, etc.), which makes the outer diff visually noisy. *Content is a prior diff; factual accuracy not in scope, but the embedding pattern is flagged in §4.*
-
-- **`output/diff_HEAD_1_HEAD/review.md`** — A 132-line code review document produced by applying the prompt to the above diff. Makes specific factual claims about bugs in `ThreadPrint.java`, `Solution_12347894.java`, `Main_478307.java`, and `ConcurrentCache.java`. *Content was reviewed for accuracy — see §3 and §4.*
-
-- **`output/session-summary.md`** — A 33-line summary of session activities and a findings table. Accurately describes what was done and matches the other files in this commit.
+- **`ConcurrentCache.java`** — New file. Declares a `ConcurrentCache<K,V>` class and two interfaces (`Cache<K,V>`, `LoadingFunction<K,V>`). The class body is entirely empty — it does not implement its own `Cache` interface. A `main` method probes Unicode string/char encoding as an unrelated side-experiment. Clearly an incomplete skeleton.
+- **`Main_478307.java`** — New file. A self-contained iterative linked-list reversal exercise. Builds a 5-node list (1→2→3→4→5) and reverses it with a canonical three-pointer loop. Output logic has a minor ordering bug.
+- **`Solution_12347894.java`** — New file. A second linked-list reversal approach using a generic inner class `ListNode<Integer>` with `append`/`prepend` helpers. The `reverseList` method builds a new reversed list using a dummy head, which introduces a spurious trailing null node. The generic type parameter is named `Integer`, shadowing `java.lang.Integer`.
+- **`ThreadPrint.java`** — New file. A multi-threaded printing exercise: three intended worker threads coordinate via a `ReentrantLock` and three `Condition` objects to print characters from a shared queue in round-robin order. Six workers are actually submitted due to copy-paste duplication. The executor is never shut down.
 
 ---
 
 ## 3. Code Quality Assessment
 
-### `prompts/diff-review.md`
+### Correctness
 
-**Correctness**: The 6 sections are logically ordered and the instructions are internally consistent. No factual errors. The example in section 4 (`ThreadPrint.java:34`) is project-specific and will confuse users of other languages or codebases.
+Correctness problems exist in three of the four files (detailed in §4). `Main_478307`'s reversal algorithm is correct but output order is wrong. `Solution_12347894`'s `reverseList` produces a list with a spurious trailing null node from the dummy-head initialisation. `ThreadPrint` creates twice the intended number of threads, breaking the round-robin invariant, and its signal-before-await sequencing is fragile enough to deadlock.
 
-**Design**: Sections flow well from high-level (Summary) to low-level (Issues, Suggestions) then close with positive feedback. The single-prompt approach (review + summary combined) is simpler than two separate calls. No guidance is given for how to handle non-code diffs — an LLM following this prompt on a diff of documentation or config files would produce an awkward "Code Quality Assessment" section with nothing meaningful to say about correctness or language idioms.
+### Design
 
-**Idioms & Conventions**: Standard Markdown. The HTML comment at the end (`<!-- Paste the output ... -->`) is a reasonable usage placeholder. The sub-headings inside section 3 are not numbered, inconsistent with the top-level section numbering style.
+All four files land in `com.example.demo` directly rather than a dedicated sub-package (e.g., `exercises`). `ConcurrentCache` mixes unrelated concerns: the interface hierarchy implies a caching abstraction while the `main` body tests string encoding. `Solution_12347894.reverseList` allocates one new `ListNode` per iteration — unnecessary heap pressure; the canonical O(1)-space reversal mutates existing node pointers in place.
 
-**Readability**: Instructions are unambiguous and specific enough to produce consistent output. The bullet-point format for each section's requirements is easy to scan.
+### Idioms & Conventions
 
-**Completeness**: Missing guidance for: (1) non-code diffs, (2) very large diffs where truncation may occur, (3) ensuring suggestions in §5 are consistent with criticisms raised in §3.
+- `Solution_12347894.java:34`: Generic type parameter named `Integer` shadows `java.lang.Integer`. Legal but deeply misleading — any reference to `java.lang.Integer` methods inside this class requires full qualification.
+- `ConcurrentCache.java:3–5`: Three imports (`CompletableFuture`, `ConcurrentHashMap`, `AtomicReference`) are unused, indicating planned but absent implementation.
+- `ThreadPrint.java:6`: `Executor` is imported but unused; `ExecutorService` is used everywhere.
+- `ThreadPrint.java`: The `try/finally` pattern that always calls `lock.unlock()` correctly follows the `java.util.concurrent.locks` idiom. `Thread.onSpinWait()` in the busy-wait loop appropriately signals the CPU.
+- Missing newline at end of file in `ConcurrentCache.java`, `Main_478307.java`, and `ThreadPrint.java`.
 
----
+### Readability
 
-### `output/diff_HEAD_1_HEAD/review.md`
+- `Solution_12347894.java:5`: Variable `listNodeListNode` is a doubled-word name with no semantic meaning; `prev` or `reversed` would be clearer.
+- `Main_478307.java:27`: `System.out.print("null ")` before the traversal loop makes output semantically backwards.
+- `ThreadPrint.java:26–28`: The `future1/2/3` submissions are copy-paste artifacts with identical arguments, obscuring the intended three-thread design.
 
-**Correctness**: Most factual claims are accurate. One internal inconsistency found — see Issue #2 in §4.
+### Completeness
 
-**Design**: Follows the 6-section structure correctly. The issues table (file, description, severity) is a useful format. Section 3 sub-dimensions match what the prompt specifies, with one silent omission — see Issue #3.
-
-**Idioms & Conventions**: Markdown is well-formed. Tables use consistent alignment. Code blocks are fenced and language-tagged.
-
-**Readability**: Clear and well-structured. Issue descriptions are specific enough to act on without re-reading the diff.
-
-**Completeness**: All 4 changed files are addressed. Section 3 "Language idioms" sub-dimension is silently omitted — not mentioned even as N/A.
-
----
-
-### `output/session-summary.md`
-
-**Correctness**: Accurately reflects the session. The note "Started as two separate prompts (review + summary), then merged into one at user request" is correct.
-
-**Design / Idioms / Readability / Completeness**: N/A — single-page summary document; no structural issues.
+`ConcurrentCache.java` declares a `Cache<K,V>` interface that the class itself does not implement. The body is empty except for the unrelated `main` — an incomplete skeleton. The three unused imports further suggest planned but unimplemented functionality.
 
 ---
 
 ## 4. Potential Issues
 
 | # | Location | Issue | Severity |
-| --- | --- | --- | --- |
-| 1 | `output/` (repo root) | Generated output files are committed to git. This inflates repository history and causes every review run to produce a noisy commit (as seen in this diff, where the majority of content is embedded prior output). The `output/` directory should be in `.gitignore`. | Medium |
-| 2 | `output/diff_HEAD_1_HEAD/review.md:5` (§5, `reverseList` suggestion) | The suggested fix for `reverseList` still allocates a new `ListNode` object per iteration (`ListNode<Integer> current = new ListNode<>(head.val)`). Section 3 of the same review explicitly criticised this as "unnecessary heap pressure." The suggestion is self-contradictory — it fixes the dummy-node initialisation bug but perpetuates the O(n) allocation problem it identified. The correct in-place fix mutates existing node pointers without allocating. | Medium |
-| 3 | `output/diff_HEAD_1_HEAD/review.md` §3 | The "Language idioms" sub-dimension is silently skipped — not addressed, not marked as N/A. The prompt requires all sub-dimensions to be covered. | Low |
-| 4 | `output/diff_HEAD_1_HEAD/diff.txt` | Embedding a full prior diff as a committed file creates a "diff of a diff" in this commit. The double-`+` prefix lines are visually noisy and make the outer diff hard to scan. This is an argument for not committing generated output at all (see Issue #1). | Low |
-| 5 | `prompts/diff-review.md:34` | The example `ThreadPrint.java:34` in section 4 is specific to this project. Users applying the prompt to a Python, Go, or YAML diff would find it confusing. | Low |
-| 6 | `prompts/diff-review.md` §3 | No handling guidance for non-code diffs. An LLM reviewing a diff of documentation or config files will either invent inapplicable code-quality observations or silently skip sub-dimensions, both of which degrade review quality. | Low |
+|---|----------|-------|----------|
+| 1 | `ThreadPrint.java:26–28` | `future1`, `future2`, `future3` all submit identical args `(conditionMain, condition_3, condition_1)`, duplicating thread 3. Six workers compete on a 3-slot round-robin: multiple threads wake per signal, breaking ordering and causing duplicate or missing output. | High |
+| 2 | `ThreadPrint.java:32–40` | Potential deadlock: six workers race to call `conditionMain.signal()` while the main thread may only be in `await()` once. Excess signals are silently dropped; if the signal chain breaks, all threads stall indefinitely. | High |
+| 3 | `ThreadPrint.java:38` | `future1.isDone()` is called as a statement; its return value is discarded — it does not block or cancel. The executor is never shut down, so the JVM may run indefinitely. | High |
+| 4 | `Solution_12347894.java:5` | `reverseList` initialises `listNodeListNode = new ListNode<>()` with `val = null`. The returned list always carries a trailing null-valued node, producing incorrect output. | High |
+| 5 | `Solution_12347894.java:34` | Generic type parameter named `Integer` shadows `java.lang.Integer`. Autoboxing and `java.lang.Integer` static methods silently fail to resolve within this class. | Medium |
+| 6 | `Main_478307.java:27` | `System.out.print("null ")` is printed before the loop. Output is `null 5 4 3 2 1` instead of the expected `5 4 3 2 1 null`. | Low |
+| 7 | `ConcurrentCache.java:3–5` | Three unused imports indicate planned implementation that was never added. | Low |
 
 ---
 
 ## 5. Suggestions for Improvement
 
-**Fix the self-contradicting `reverseList` suggestion in `review.md`**
+**`ThreadPrint.java` — remove duplicate thread submissions (lines 26–28)**
 
-The review criticises O(n) allocation in §3 but the §5 fix still allocates. The true in-place reversal reuses existing nodes:
+Delete the three `future1/2/3` `submit` calls; keep only the three `execute` calls with the correct distinct condition chains. Shut down the executor to allow JVM exit:
 
 ```java
-// In-place reversal — no new node allocation
+executor.execute(() -> printOnConditions(conditionMain, condition_1, condition_2));
+executor.execute(() -> printOnConditions(conditionMain, condition_2, condition_3));
+executor.execute(() -> printOnConditions(conditionMain, condition_3, condition_1));
+executor.shutdown();
+executor.awaitTermination(10, TimeUnit.SECONDS);
+```
+
+**`ThreadPrint.java` — replace `conditionMain` await with a `CountDownLatch`**
+
+The current design races: a worker can signal `conditionMain` before the main thread reaches `await()`. A `CountDownLatch` eliminates this race entirely:
+
+```java
+CountDownLatch ready = new CountDownLatch(3);
+// inside printOnConditions, after acquiring the lock:
+ready.countDown();
+// in main, replace the lock.lock()/conditionMain.await() block:
+ready.await();
+condition_1.signal(); // kick off the first worker
+```
+
+**`Solution_12347894.java` — fix `reverseList` to use in-place pointer reversal (line 5)**
+
+The dummy-head bug and the unnecessary per-iteration allocation are both fixed by reversing in place:
+
+```java
 public static ListNode<Integer> reverseList(ListNode<Integer> head) {
     ListNode<Integer> prev = null;
     while (head != null) {
-        ListNode<Integer> next = head.next; // save next
-        head.next = prev;                   // reverse pointer
+        ListNode<Integer> next = head.next; // save forward pointer
+        head.next = prev;                   // reverse the link
         prev = head;
         head = next;
     }
@@ -100,51 +116,36 @@ public static ListNode<Integer> reverseList(ListNode<Integer> head) {
 }
 ```
 
-Note: this fix also requires renaming the type parameter from `Integer` to `T` first (also flagged in the review) to avoid shadowing `java.lang.Integer`.
+**`Solution_12347894.java` — rename the generic type parameter (line 34)**
 
-**Add `output/` to `.gitignore`**
-
-```gitignore
-# Generated diff review artifacts
-output/
+```java
+public static class ListNode<T> {
+    T val;
+    ListNode<T> next;
+    // ...
+}
 ```
 
-Commit specific outputs intentionally with `git add -f` when they need to be preserved for reference.
+**`Main_478307.java` — move `"null"` print after the loop (line 27)**
 
-**Add non-code diff guidance to `prompts/diff-review.md`**
-
-Add the following note directly after the opening instruction:
-
-```markdown
-**Important — diff content types**: The diff may contain source code, documentation,
-configuration, generated/vendored files, or a mix. Apply each section to whatever is
-present. If a section or sub-dimension is not applicable (e.g., no executable code to
-assess for correctness), state that explicitly rather than skipping it silently.
+```java
+while (reversed != null) {
+    System.out.print(reversed.val + " ");
+    reversed = reversed.next;
+}
+System.out.println("null");
 ```
 
-**Add consistency check instruction to §5 of `prompts/diff-review.md`**
+**`ConcurrentCache.java` — implement or stub the interface; remove unused imports**
 
-Append to the existing §5 requirements:
-
-```markdown
-- Ensure suggestions do not contradict criticisms raised in §3 — if §3 identifies
-  a problem, the §5 fix must fully address it.
-```
-
-**Replace project-specific example in `prompts/diff-review.md:34`**
-
-```markdown
-- State the **file and approximate line** (e.g., `MyClass.java:34` or `config.yaml:12`)
-```
+Either add a `ConcurrentHashMap`-backed implementation of `Cache<K,V>`, or remove the placeholder interfaces and dead imports until ready.
 
 ---
 
 ## 6. Positive Observations
 
-- **`prompts/diff-review.md` — logical section order**: High-level summary first, then progressive detail through quality, issues, suggestions, and closing with positives. This mirrors how a good human reviewer would structure feedback.
+- **`Main_478307.java:33–43` — canonical iterative reversal**: The `reverseNodeList` algorithm is the standard O(n)-time O(1)-space pointer-swap reversal. Logic is concise and correct.
 
-- **`output/diff_HEAD_1_HEAD/review.md` — issues table with severity**: Using a structured table (file, description, severity) rather than prose paragraphs for §4 makes the issues immediately scannable and easy to prioritise.
+- **`ThreadPrint.java` — correct `ReentrantLock` + `Condition` idiom**: The `try/finally` that always calls `lock.unlock()` follows the recommended pattern. Using `Thread.onSpinWait()` in the busy-wait loop is a good touch that signals CPU spin state.
 
-- **`output/diff_HEAD_1_HEAD/review.md` — proactive `.gitignore` recommendation**: The review identified that committing `output/` is problematic even though it wasn't explicitly in scope as a "bug." This is the kind of contextual observation a good reviewer provides beyond the immediate diff.
-
-- **`output/session-summary.md` — findings table**: The file/issue mapping table at the bottom is a concise handoff artefact that lets a reader triage without reading the full review.
+- **`Solution_12347894.java` — `append`/`prepend` helpers**: Factoring pointer manipulation into named methods on `ListNode` improves readability over raw `node.next = ...` assignments inline.
