@@ -1,0 +1,221 @@
+diff --git a/src/main/java/com/example/demo/ConcurrentCache.java b/src/main/java/com/example/demo/ConcurrentCache.java
+new file mode 100644
+index 0000000..e612860
+--- /dev/null
++++ b/src/main/java/com/example/demo/ConcurrentCache.java
+@@ -0,0 +1,26 @@
++package com.example.demo;
++
++import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.atomic.AtomicReference;
++
++public class ConcurrentCache<K, V>  {
++
++
++    public static void main(String[] args) {
++
++        String string = "了ds";
++        string.toCharArray();
++        string.codePoints();
++        System.out.println(string.toCharArray().length);
++        System.out.println(string.length());
++    }
++}
++
++interface Cache<K, V> {
++    V get(K key);
++}
++
++interface LoadingFunction<K, V> {
++    V apply(K key);
++}
+\ No newline at end of file
+diff --git a/src/main/java/com/example/demo/Main_478307.java b/src/main/java/com/example/demo/Main_478307.java
+new file mode 100644
+index 0000000..1ab3ca1
+--- /dev/null
++++ b/src/main/java/com/example/demo/Main_478307.java
+@@ -0,0 +1,46 @@
++package com.example.demo;
++
++public class Main_478307 {
++
++    static class Node {
++        int val;
++        Node next;
++
++        Node(int val) {
++            this.val = val;
++        }
++    }
++
++    public static void main(String[] args) {
++
++        // 构建链表 1 -> 2 -> 3 -> 4 -> 5 -> null
++        Node head = new Node(1);
++        head.next = new Node(2);
++        head.next.next = new Node(3);
++        head.next.next.next = new Node(4);
++        head.next.next.next.next = new Node(5);
++
++        // 反转链表
++        Node reversed = reverseNodeList(head);
++
++        // 输出
++        System.out.print("null ");
++        while (reversed != null) {
++            System.out.print(reversed.val + " ");
++            reversed = reversed.next;
++        }
++    }
++
++    private static Node reverseNodeList(Node head) {
++        Node reversed = null;
++        Node tmp;
++        while (head != null) {
++            tmp = reversed;
++            reversed = head;
++            head = head.next;
++            reversed.next = tmp;
++
++        }
++        return reversed;
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/com/example/demo/Solution_12347894.java b/src/main/java/com/example/demo/Solution_12347894.java
+new file mode 100644
+index 0000000..63982c6
+--- /dev/null
++++ b/src/main/java/com/example/demo/Solution_12347894.java
+@@ -0,0 +1,57 @@
++package com.example.demo;
++
++public class Solution_12347894 {
++    public static ListNode<Integer> reverseList(ListNode<Integer> head) {
++        ListNode<Integer> listNodeListNode = new ListNode<>();
++        while (head != null) {
++            ListNode<Integer> current = new ListNode<>(head.val);
++            listNodeListNode.prepend(current);
++            listNodeListNode = current;
++            head = head.next;
++        }
++        return listNodeListNode;
++    }
++
++    public static void main(String[] args) {
++        ListNode<Integer> listNode = new ListNode<>(0);
++        ListNode<Integer> listNode2 = listNode;
++        for (int i = 1; i < 10; i++) {
++            listNode2.append(new ListNode<>(i));
++            listNode2 = listNode2.next;
++        }
++        ListNode<Integer> listNode3 = listNode;
++        while (listNode != null) {
++            System.out.println(listNode.val);
++            listNode = listNode.next;
++        }
++        ListNode<Integer> listNode1 = reverseList(listNode3);
++        while (listNode1 != null) {
++            System.out.println(listNode1.val);
++            listNode1 = listNode1.next;
++        }
++    }
++
++    public static class ListNode<Integer> {
++        Integer val;
++        ListNode<Integer> next;
++
++        ListNode(Integer val) {
++            this.val = val;
++            this.next = null;
++        }
++
++        ListNode() {
++            this.val = null;
++            this.next = null;
++        }
++
++        public void append(ListNode<Integer> next) {
++            this.next = next;
++        }
++
++        public void prepend(ListNode<Integer> head) {
++            head.next = this;
++        }
++    }
++
++}
+diff --git a/src/main/java/com/example/demo/ThreadPrint.java b/src/main/java/com/example/demo/ThreadPrint.java
+new file mode 100644
+index 0000000..2666870
+--- /dev/null
++++ b/src/main/java/com/example/demo/ThreadPrint.java
+@@ -0,0 +1,65 @@
++package com.example.demo;
++
++import java.util.Arrays;
++import java.util.LinkedList;
++import java.util.Queue;
++import java.util.concurrent.Executor;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
++import java.util.concurrent.Future;
++import java.util.concurrent.locks.*;
++
++public class ThreadPrint {
++    static Lock lock = new ReentrantLock();
++    static Queue<Character> queue = new LinkedList<>(Arrays.asList('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'));
++    static volatile boolean needToWait = true;
++
++    public static void main(String[] args) {
++        Condition conditionMain = lock.newCondition();
++        Condition condition_1 = lock.newCondition();
++        Condition condition_2 = lock.newCondition();
++        Condition condition_3 = lock.newCondition();
++        ExecutorService executor = Executors.newCachedThreadPool();
++        executor.execute(() -> printOnConditions(conditionMain, condition_1, condition_2));
++        executor.execute(() -> printOnConditions(conditionMain, condition_2, condition_3));
++        executor.execute(() -> printOnConditions(conditionMain, condition_3, condition_1));
++        Future<?> future1 = executor.submit(() -> printOnConditions(conditionMain, condition_3, condition_1));
++        Future<?> future2 = executor.submit(() -> printOnConditions(conditionMain, condition_3, condition_1));
++        Future<?> future3 = executor.submit(() -> printOnConditions(conditionMain, condition_3, condition_1));
++
++        lock.lock();
++        needToWait = false;
++        try {
++            conditionMain.await();
++        } catch (InterruptedException e) {
++            System.out.println("main thread was interrupted");
++        } finally {
++            condition_1.signal();
++            lock.unlock();
++            future1.isDone();
++        }
++    }
++
++    private static void printOnConditions(Condition conditionMain, Condition condition_wait, Condition condition_signal) {
++        while (needToWait) {
++            Thread.onSpinWait();
++        }
++        lock.lock();
++        conditionMain.signal();
++        try {
++            while (true) {
++                condition_wait.await();
++                if (queue.peek() == null) {
++                    condition_signal.signal();
++                    break;
++                }
++                System.out.println(Thread.currentThread().threadId() + " :  " + queue.poll());
++                condition_signal.signal();
++            }
++        } catch (InterruptedException e) {
++            throw new RuntimeException(e);
++        } finally {
++            lock.unlock();
++        }
++    }
++}
+\ No newline at end of file
