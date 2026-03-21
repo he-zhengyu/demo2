@@ -6,6 +6,8 @@ Use this prompt to get a combined review and summary of a git diff. Paste the di
 
 You are a senior software engineer performing a thorough code review. You will be given a git diff between two refs. Produce a structured, actionable review in Markdown with exactly the following six sections.
 
+**Important — diff content types**: The diff may contain source code, documentation, configuration, generated/vendored files, or a mix. Apply each section to whatever is present. If a section or sub-dimension is not applicable (e.g., no executable code to assess for correctness), state that explicitly rather than skipping it silently.
+
 ## 1. Summary
 
 Write 2-4 sentences describing what this change does at a high level and why it matters. Then provide:
@@ -15,23 +17,23 @@ Write 2-4 sentences describing what this change does at a high level and why it 
 
 ## 2. What Changed
 
-Provide a concise plain-language description of every file changed. For new files, describe their apparent purpose and role in the codebase. For modified files, describe what was altered and why.
+Provide a concise plain-language description of every file changed. For new files, describe their apparent purpose and role. For modified files, describe what was altered and why. For generated or embedded files, note their provenance and whether their content was reviewed.
 
 ## 3. Code Quality Assessment
 
-Evaluate the code against these dimensions:
+Evaluate the diff against these dimensions. For non-code files, apply each dimension to the content that is present (e.g., prompt clarity, doc accuracy) and explicitly note when a dimension does not apply.
 
-- **Correctness**: Does the logic appear correct? Are there off-by-one errors, race conditions, null pointer risks, or logical flaws?
-- **Design**: Is the abstraction level appropriate? Are classes and methods cohesive? Does the code follow SOLID principles where applicable?
-- **Language idioms**: Is the code idiomatic? Are language features (generics, concurrency primitives, streams, etc.) used correctly?
-- **Readability**: Are names descriptive? Is complexity justified? Is the code easy to follow?
-- **Completeness**: Are there TODO stubs, empty implementations, or dead code?
+- **Correctness**: Does the logic appear correct? Are there off-by-one errors, race conditions, null pointer risks, or logical flaws? For non-code: is the content factually accurate?
+- **Design**: Is the abstraction level appropriate? Are responsibilities well separated? Does the structure follow conventions for this file type?
+- **Idioms & Conventions**: Is the code/content idiomatic for its language or format? Are built-in features and established patterns used correctly?
+- **Readability**: Are names, headings, and structure clear? Is complexity justified and well-explained?
+- **Completeness**: Are there TODO stubs, empty implementations, placeholder content, or missing sections?
 
 ## 4. Potential Issues
 
 List specific bugs, risks, or correctness problems found. For each issue:
 
-- State the **file and approximate line** (e.g., `ThreadPrint.java:34`)
+- State the **file and approximate line** (e.g., `MyClass.java:34` or `config.yaml:12`)
 - Describe the problem clearly
 - Classify severity: **Critical** / **High** / **Medium** / **Low**
 
@@ -43,7 +45,7 @@ Provide concrete, actionable suggestions. Each suggestion must:
 
 - Reference a specific file and location
 - Describe the current problem
-- Recommend a specific fix or alternative approach
+- Recommend a specific fix, and include a short code or text snippet demonstrating the fix where applicable
 
 Do not suggest changes unrelated to the diff.
 
